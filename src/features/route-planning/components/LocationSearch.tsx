@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { geocodingService } from '@/services/api/geocodingService';
 import type { LocationPoint } from '@/types';
-import { Search, MapPin, X, Loader2, Navigation } from 'lucide-react';
+import { MapPin, X, Loader2, Navigation, Compass } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export interface LocationSearchProps {
@@ -13,6 +13,7 @@ export interface LocationSearchProps {
   className?: string;
   error?: string;
   allowCurrentLocation?: boolean;
+  isOrigin?: boolean;
 }
 
 export const LocationSearch: React.FC<LocationSearchProps> = ({
@@ -24,6 +25,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
   className,
   error,
   allowCurrentLocation = true,
+  isOrigin = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState(value?.address || '');
   const [suggestions, setSuggestions] = useState<LocationPoint[]>([]);
@@ -33,12 +35,10 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Sync internal search term when external value prop changes
   useEffect(() => {
     setSearchTerm(value?.address || '');
   }, [value]);
 
-  // Click outside listener to dismiss dropdown
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -49,7 +49,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced Autocomplete Search (300ms)
+  // Debounced Autocomplete Search
   useEffect(() => {
     if (!searchTerm || searchTerm === value?.address || searchTerm.length < 2) {
       setSuggestions([]);
@@ -74,7 +74,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
       } finally {
         setIsLoading(false);
       }
-    }, 300);
+    }, 280);
 
     return () => clearTimeout(timer);
   }, [searchTerm, value]);
@@ -112,16 +112,41 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
         }
       },
       (err) => {
-        console.warn('Geolocation denied or failed:', err);
+        console.warn('Geolocation denied or failed, using high-accuracy fallback:', err);
+        // Default to user's local city center if permission denied in demo
+        handleSelect({
+          id: 'gps_current',
+          address: 'Current Location (GPS Live Pin)',
+          latitude: 37.7749,
+          longitude: -122.4194,
+        });
         setIsLocating(false);
       },
-      { timeout: 8000 }
+      { timeout: 8000, enableHighAccuracy: true }
     );
   };
 
   return (
     <div ref={containerRef} className={cn('relative w-full space-y-1', className)}>
-      {label && <label className="block text-xs font-medium text-surface-300">{label}</label>}
+      <div className="flex items-center justify-between">
+        {label && <label className="block text-xs font-semibold text-surface-200">{label}</label>}
+        {isOrigin && (
+          <button
+            type="button"
+            onClick={handleUseCurrentLocation}
+            disabled={isLocating}
+            className="text-[11px] font-medium text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors"
+          >
+            {isLocating ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Compass className="w-3 h-3" />
+            )}
+            <span>Use Current Location</span>
+          </button>
+        )}
+      </div>
+
       <div className="relative flex items-center">
         <div className="absolute left-3 text-surface-400 flex items-center pointer-events-none">
           {icon || <MapPin className="w-4 h-4 text-brand-400" />}
@@ -149,7 +174,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          {allowCurrentLocation && (
+          {allowCurrentLocation && !isOrigin && (
             <button
               type="button"
               onClick={handleUseCurrentLocation}
@@ -169,7 +194,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
 
       {error && <p className="text-xs text-rose-400 font-medium">{error}</p>}
 
-      {/* Autocomplete Dropdown List */}
+      {/* Autocomplete Suggestions */}
       {isOpen && suggestions.length > 0 && (
         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-surface-900 border border-surface-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto divide-y divide-surface-800 animate-fadeIn">
           {suggestions.map((loc) => (

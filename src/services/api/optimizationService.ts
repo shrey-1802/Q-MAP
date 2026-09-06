@@ -30,42 +30,42 @@ export const optimizationService = {
       const elapsed = job ? Date.now() - job.createdAt : 3000;
 
       // Simulate step-by-step progress stages
-      if (elapsed < 800) {
+      if (elapsed < 600) {
         return {
           requestId,
           status: 'PREPARING_ROAD_NETWORK',
-          progressPercent: 20,
-          currentStageMessage: 'Extracting road network graphs and topology...',
+          progressPercent: 25,
+          currentStageMessage: 'Connecting to OpenStreetMap road graph & topological matrix...',
           algorithm: 'QIGA',
           createdAt: new Date().toISOString(),
         };
-      } else if (elapsed < 1600) {
+      } else if (elapsed < 1200) {
         return {
           requestId,
           status: 'LOADING_TRAFFIC',
-          progressPercent: 45,
-          currentStageMessage: 'Overlaying real-time traffic congestion & incident vectors...',
+          progressPercent: 55,
+          currentStageMessage: 'Overlaying real-time traffic congestion, bottlenecks & road restrictions...',
           algorithm: 'QIGA',
           createdAt: new Date().toISOString(),
         };
-      } else if (elapsed < 2400) {
+      } else if (elapsed < 1800) {
         return {
           requestId,
           status: 'EVALUATING_CANDIDATES',
-          progressPercent: 75,
+          progressPercent: 80,
           currentStageMessage: 'QIGA quantum rotation gates updating qubit chromosome population...',
           algorithm: 'QIGA',
           createdAt: new Date().toISOString(),
         };
       } else {
         const dummyRequest: RouteOptimizationRequest = job?.request || {
-          origin: { address: 'Origin', latitude: 37.7897, longitude: -122.3972 },
-          destination: { address: 'Destination', latitude: 37.6213, longitude: -122.3790 },
+          origin: { address: 'Salesforce Tower, San Francisco, CA', latitude: 37.7897, longitude: -122.3972 },
+          destination: { address: 'San Francisco International Airport (SFO)', latitude: 37.6213, longitude: -122.3790 },
           stops: [],
           vehicle: { type: 'FOUR_WHEELER' },
           objective: 'BALANCED',
         };
-        return generateMockOptimizationResult(requestId, dummyRequest);
+        return await generateMockOptimizationResult(requestId, dummyRequest);
       }
     }
 
@@ -79,13 +79,13 @@ export const optimizationService = {
   async getRouteById(routeId: string): Promise<QIGAOptimizationResponse> {
     if (env.VITE_ENABLE_DEMO_MODE) {
       const dummyRequest: RouteOptimizationRequest = {
-        origin: { address: 'San Francisco, CA', latitude: 37.7897, longitude: -122.3972 },
+        origin: { address: 'Salesforce Tower, San Francisco, CA', latitude: 37.7897, longitude: -122.3972 },
         destination: { address: 'SFO Airport, CA', latitude: 37.6213, longitude: -122.3790 },
         stops: [],
         vehicle: { type: 'FOUR_WHEELER' },
         objective: 'BALANCED',
       };
-      return generateMockOptimizationResult(routeId, dummyRequest);
+      return await generateMockOptimizationResult(routeId, dummyRequest);
     }
 
     const response = await apiClient.get<QIGAOptimizationResponse>(`/api/v1/routes/${routeId}`);

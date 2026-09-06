@@ -10,7 +10,7 @@ import type {
   OptimizationWeights,
   RouteOptimizationRequest,
 } from '@/types';
-import { Plus, Trash2, ArrowUpDown, Sparkles, MapPin, Flag, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Sparkles, MapPin, Flag, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
 export interface RoutePlannerFormProps {
@@ -130,7 +130,7 @@ export const RoutePlannerForm: React.FC<RoutePlannerFormProps> = ({
       )}
 
       {/* Waypoints & Stops Container */}
-      <div className="space-y-2 p-3 bg-surface-900/80 border border-surface-800 rounded-2xl">
+      <div className="space-y-2.5 p-3.5 bg-surface-900/80 border border-surface-800 rounded-2xl">
         <div className="flex items-center justify-between pb-1 border-b border-surface-800/60">
           <span className="text-xs font-semibold text-surface-200">Waypoints & Sequence</span>
           <button
@@ -143,13 +143,14 @@ export const RoutePlannerForm: React.FC<RoutePlannerFormProps> = ({
           </button>
         </div>
 
-        {/* Origin Input */}
+        {/* Origin Input with GPS current location button */}
         <LocationSearch
-          label="Origin (Start)"
+          label="Origin (Departure Point)"
           placeholder="Enter departure address or pinpoint..."
           value={origin}
           onChange={handleOriginChange}
           icon={<MapPin className="w-4 h-4 text-brand-400" />}
+          isOrigin={true}
         />
 
         {/* Intermediate Stops */}
@@ -196,7 +197,7 @@ export const RoutePlannerForm: React.FC<RoutePlannerFormProps> = ({
 
         {/* Destination Input */}
         <LocationSearch
-          label="Destination (End)"
+          label="Destination (Arrival Point)"
           placeholder="Enter arrival destination..."
           value={destination}
           onChange={handleDestinationChange}
