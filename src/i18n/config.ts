@@ -62,6 +62,9 @@ i18n.use(initReactI18next).init({
   interpolation: {
     escapeValue: false,
   },
+  react: {
+    useSuspense: false, // Critical: Disable React Suspense blocking in react-i18next to prevent white screen
+  },
 });
 
 export default i18n;

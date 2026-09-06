@@ -1,6 +1,37 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { UserProfile } from '@/types';
+
+// Safe In-Memory & Session Storage fallback
+const safeStorage: StateStorage = {
+  getItem: (name: string): string | null => {
+    try {
+      return typeof window !== 'undefined' && window.sessionStorage
+        ? window.sessionStorage.getItem(name)
+        : null;
+    } catch {
+      return null;
+    }
+  },
+  setItem: (name: string, value: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(name, value);
+      }
+    } catch {
+      // Ignore in restricted environments
+    }
+  },
+  removeItem: (name: string): void => {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.removeItem(name);
+      }
+    } catch {
+      // Ignore in restricted environments
+    }
+  },
+};
 
 interface AuthState {
   user: UserProfile | null;
@@ -61,7 +92,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'qmap_auth_storage',
-      storage: createJSONStorage(() => sessionStorage), // Use sessionStorage to prevent cross-session token persistence leaks
+      storage: createJSONStorage(() => safeStorage),
     }
   )
 );
