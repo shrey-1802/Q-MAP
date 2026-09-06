@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Q-MAP | Redirecting...</title>
+    <script>
+      // GitHub Pages SPA redirect trick.
+      // When GH Pages returns a 404 for a client-side route, this page is served.
+      // We encode the full path in a query param and redirect to the root so
+      // React Router can pick it up.
+      var segmentCount = 1; // Number of path segments in the repo name (1 for /Q-MAP)
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?/' +
+        l.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>

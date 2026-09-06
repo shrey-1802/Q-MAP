@@ -4,6 +4,8 @@ import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // GitHub Pages serves from /<repo-name>/ — base must match repo name
+  base: process.env.NODE_ENV === 'production' ? '/Q-MAP/' : '/',
   plugins: [react()],
   resolve: {
     alias: {

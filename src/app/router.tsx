@@ -35,6 +35,9 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+// On GitHub Pages the app is served from /Q-MAP/ — basename must match the vite `base`
+const basename = import.meta.env.PROD ? '/Q-MAP' : '/';
+
 export const router = createBrowserRouter([
   // Public Landing
   {
@@ -101,4 +104,4 @@ export const router = createBrowserRouter([
     path: '*',
     element: <NotFoundPage />,
   },
-]);
+], { basename });

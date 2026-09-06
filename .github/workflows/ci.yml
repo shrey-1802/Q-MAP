@@ -1,4 +1,4 @@
-name: Q-MAP Frontend CI/CD Pipeline
+name: Q-MAP Deploy to GitHub Pages
 
 on:
   push:
@@ -6,8 +6,14 @@ on:
   pull_request:
     branches: [master, main]
 
+# Allow one concurrent deployment
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -31,3 +37,39 @@ jobs:
 
       - name: Build production bundle
         run: npm run build
+        env:
+          NODE_ENV: production
+          VITE_APP_ENV: production
+          VITE_MAP_PROVIDER: carto_dark
+          VITE_MAP_TILE_URL: https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png
+          VITE_ENABLE_DEMO_MODE: true
+          VITE_REALTIME_TRANSPORT: sse
+          VITE_APP_NAME: Q-MAP Intelligent Route Optimization
+          # Set VITE_API_BASE_URL via GitHub secret:
+          # Go to Settings > Secrets > Actions > New repository secret
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+      - name: Upload build artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build-and-test
+    # Only deploy on push to main/master, not on PRs
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
