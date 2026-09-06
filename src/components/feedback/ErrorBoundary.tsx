@@ -27,7 +27,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     this.setState({ hasError: false, error: null });
-    window.location.href = '/home';
+    // Navigate to the app root — works on both localhost and GitHub Pages (/Q-MAP/)
+    window.location.href = window.location.origin + (import.meta.env.BASE_URL || '/');
   };
 
   public render() {
