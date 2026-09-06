@@ -12,7 +12,7 @@ import { optimizationService } from '@/services/api/optimizationService';
 import { geocodingService } from '@/services/api/geocodingService';
 import type { LocationPoint, RouteOptimizationRequest, RouteOption } from '@/types';
 import { Card, Button, Alert, Tabs } from '@/components/ui';
-import { Sparkles, ArrowLeft, RefreshCw, MapPin } from 'lucide-react';
+import { Sparkles, ArrowLeft, RefreshCw, MapPin, X } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const routerLocation = useLocation();
@@ -278,6 +278,29 @@ export const HomePage: React.FC = () => {
           onMapClick={handleMapClick}
           className="h-full w-full"
         />
+
+        {/* Floating Stop Navigation button — visible on map whenever a route exists */}
+        {(origin || destination || allRoutes.length > 0) && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+            <button
+              id="map-stop-nav-btn"
+              onClick={handleStopNavigation}
+              className="pointer-events-auto flex items-center gap-2.5 px-6 py-3 rounded-2xl font-bold text-sm text-white shadow-2xl border border-rose-500/60 transition-all duration-200 active:scale-95 hover:scale-105"
+              style={{
+                background: 'linear-gradient(135deg, #be123c 0%, #e11d48 50%, #f43f5e 100%)',
+                boxShadow: '0 0 28px rgba(244, 63, 94, 0.45), 0 8px 24px rgba(0,0,0,0.6)',
+              }}
+              aria-label="Stop Navigation and Reset"
+            >
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-200 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+              </span>
+              <X className="w-4 h-4 shrink-0" />
+              Stop Navigation
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
