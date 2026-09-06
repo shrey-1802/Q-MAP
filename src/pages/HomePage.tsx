@@ -98,6 +98,17 @@ export const HomePage: React.FC = () => {
     }
   };
 
+  // Full reset — clears all state and returns to a blank Route Planner form
+  const handleStopNavigation = () => {
+    setIsNavigating(false);
+    setActiveRequestId(null);
+    setSelectedRouteId(null);
+    setSubmissionError(null);
+    setOrigin(null);
+    setDestination(null);
+    setStops([]);
+  };
+
   // Render Fullscreen Live Navigation View if active
   if (isNavigating && activeSelectedRoute && origin && destination) {
     return (
@@ -106,7 +117,7 @@ export const HomePage: React.FC = () => {
           route={activeSelectedRoute}
           origin={origin}
           destination={destination}
-          onExit={() => setIsNavigating(false)}
+          onExit={handleStopNavigation}
         />
       </div>
     );
