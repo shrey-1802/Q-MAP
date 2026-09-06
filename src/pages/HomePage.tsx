@@ -279,9 +279,9 @@ export const HomePage: React.FC = () => {
           className="h-full w-full"
         />
 
-        {/* Floating Stop Navigation button — visible on map whenever a route exists */}
+        {/* Floating Stop Navigation button — bottom-right of map */}
         {(origin || destination || allRoutes.length > 0) && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+          <div className="absolute bottom-6 right-4 z-30 pointer-events-none">
             <button
               id="map-stop-nav-btn"
               onClick={handleStopNavigation}
