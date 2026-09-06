@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Input, Button, Alert } from '@/components/ui';
-import { Sparkles, Lock, Mail, User, ArrowRight } from 'lucide-react';
+import { Card, CardContent, CardFooter, Input, Button, Alert } from '@/components/ui';
+import { Lock, Mail, User, CheckCircle2 } from 'lucide-react';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { registerAccount } = useAuthStore();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,11 +15,20 @@ export const RegisterPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !email || !password) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-    login(
+
+    registerAccount(
       {
         id: `usr_${Date.now()}`,
         name,
@@ -30,8 +39,9 @@ export const RegisterPage: React.FC = () => {
         units: 'METRIC',
         language: 'en',
       },
-      'jwt_new_registered_token'
+      password
     );
+
     navigate('/home');
   };
 
@@ -91,7 +101,7 @@ export const RegisterPage: React.FC = () => {
 
             <CardFooter className="flex flex-col gap-3">
               <Button type="submit" variant="primary" size="md" className="w-full">
-                Register & Initialize
+                Register & Sign In
               </Button>
               <div className="text-center text-xs text-surface-400">
                 Already registered?{' '}

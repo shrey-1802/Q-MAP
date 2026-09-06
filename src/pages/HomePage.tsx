@@ -9,9 +9,10 @@ import { RouteComparisonMatrix } from '@/features/route-results/components/Route
 import { NavigationView } from '@/features/navigation/components/NavigationView';
 import { useOptimizationJob } from '@/features/optimization/hooks/useOptimizationJob';
 import { optimizationService } from '@/services/api/optimizationService';
+import { geocodingService } from '@/services/api/geocodingService';
 import type { LocationPoint, RouteOptimizationRequest, RouteOption } from '@/types';
 import { Card, Button, Alert, Tabs } from '@/components/ui';
-import { Sparkles, Map as MapIcon, Sliders, ArrowLeft, RefreshCw, BarChart2 } from 'lucide-react';
+import { Sparkles, ArrowLeft, RefreshCw, MapPin } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   const routerLocation = useLocation();
@@ -40,9 +41,10 @@ export const HomePage: React.FC = () => {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeTab, setActiveTab] = useState<'routes' | 'matrix' | 'convergence'>('routes');
+  const [mapNotice, setMapNotice] = useState<string | null>(null);
 
   // Hook for live QIGA polling and SSE progress
-  const { data: optimizationResult, isLoading: isOptimizing, error: optimizationError, cancelJob } =
+  const { data: optimizationResult, isLoading: isOptimizing, cancelJob } =
     useOptimizationJob(activeRequestId);
 
   const handleStartOptimization = async (request: RouteOptimizationRequest) => {
@@ -75,6 +77,27 @@ export const HomePage: React.FC = () => {
 
   const activeSelectedRoute = allRoutes.find((r) => r.id === selectedRouteId) || recommendedRoute;
 
+  // Handle map click to place waypoints interactively
+  const handleMapClick = async (lat: number, lng: number) => {
+    try {
+      const loc = await geocodingService.reverseGeocode(lat, lng);
+      if (!origin) {
+        setOrigin(loc);
+        setMapNotice(`Set Origin to (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+      } else if (!destination) {
+        setDestination(loc);
+        setMapNotice(`Set Destination to (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+      } else {
+        const updated = [...stops, loc];
+        setStops(updated);
+        setMapNotice(`Added Stop ${updated.length} at (${lat.toFixed(4)}, ${lng.toFixed(4)})`);
+      }
+      setTimeout(() => setMapNotice(null), 3000);
+    } catch (err) {
+      console.error('Failed to resolve map click:', err);
+    }
+  };
+
   // Render Fullscreen Live Navigation View if active
   if (isNavigating && activeSelectedRoute && origin && destination) {
     return (
@@ -102,9 +125,15 @@ export const HomePage: React.FC = () => {
                 <span>Quantum Route Planner</span>
               </h1>
               <p className="text-xs text-surface-400 mt-0.5">
-                Configure waypoints, vehicle constraints, and Pareto multi-objective weights.
+                Configure waypoints or click on the map to place pins. Run QIGA to compute Pareto multi-objective trajectories.
               </p>
             </div>
+
+            {mapNotice && (
+              <Alert variant="info" title="Map Point Selected">
+                {mapNotice}
+              </Alert>
+            )}
 
             {submissionError && (
               <Alert variant="error" title="Submission Failed">
@@ -235,6 +264,7 @@ export const HomePage: React.FC = () => {
           stops={stops}
           routes={allRoutes}
           selectedRouteId={selectedRouteId || recommendedRoute?.id}
+          onMapClick={handleMapClick}
           className="h-full w-full"
         />
       </div>

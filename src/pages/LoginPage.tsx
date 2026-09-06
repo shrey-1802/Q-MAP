@@ -2,15 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Input, Button, Alert, Badge } from '@/components/ui';
-import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck, UserCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, sessionExpired } = useAuthStore();
+  const { login, sessionExpired, registeredAccounts } = useAuthStore();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('alex.rivera@mobility.org');
+  const [password, setPassword] = useState('password123');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,46 +26,57 @@ export const LoginPage: React.FC = () => {
     setIsLoading(true);
     setError(null);
 
-    // Secure authentication handler
     setTimeout(() => {
-      login(
-        {
-          id: 'usr_operator_01',
-          name: email.split('@')[0] || 'Mobility Operator',
-          email: email,
-          role: 'USER',
-          defaultVehicle: 'FOUR_WHEELER',
-          preferredObjective: 'BALANCED',
-          units: 'METRIC',
-          language: 'en',
-        },
-        'jwt_secure_auth_token_sample'
+      // Check registered accounts
+      const matched = registeredAccounts.find(
+        (acc) => acc.user.email.toLowerCase() === email.toLowerCase() && acc.passwordHash === password
       );
-      setIsLoading(false);
-      navigate(from, { replace: true });
-    }, 600);
+
+      if (matched) {
+        login(matched.user, `jwt_token_${Date.now()}`);
+        setIsLoading(false);
+        navigate(from, { replace: true });
+      } else {
+        // Allow fallback demo authentication if any valid password entered
+        login(
+          {
+            id: `usr_${Math.random().toString(36).substring(2, 8)}`,
+            name: email.split('@')[0] || 'Mobility Operator',
+            email: email,
+            role: 'USER',
+            defaultVehicle: 'FOUR_WHEELER',
+            preferredObjective: 'BALANCED',
+            units: 'METRIC',
+            language: 'en',
+          },
+          `jwt_token_${Date.now()}`
+        );
+        setIsLoading(false);
+        navigate(from, { replace: true });
+      }
+    }, 400);
   };
 
-  const handleDemoLogin = () => {
+  const handleQuickSignIn = (role: 'FLEET_MANAGER' | 'RESEARCHER' | 'DISPATCHER') => {
     login(
       {
-        id: 'usr_demo_01',
-        name: 'Alex Rivera (Demo Operator)',
-        email: 'alex.rivera@mobility.org',
-        role: 'USER',
-        defaultVehicle: 'FOUR_WHEELER',
-        preferredObjective: 'BALANCED',
+        id: `usr_${role.toLowerCase()}_01`,
+        name: role === 'FLEET_MANAGER' ? 'Alex Rivera' : role === 'RESEARCHER' ? 'Dr. Elena Vance' : 'Marcus Brody',
+        email: `${role.toLowerCase()}@mobility.org`,
+        role: role === 'FLEET_MANAGER' ? 'FLEET_MANAGER' : 'USER',
+        defaultVehicle: role === 'DISPATCHER' ? 'HEAVY_LOAD' : 'FOUR_WHEELER',
+        preferredObjective: role === 'RESEARCHER' ? 'ECO' : 'BALANCED',
         units: 'METRIC',
         language: 'en',
       },
-      'jwt_demo_token_valid'
+      `jwt_quick_${role.toLowerCase()}`
     );
-    navigate('/home', { replace: true });
+    navigate(from, { replace: true });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-surface-950 relative overflow-hidden">
-      {/* Subtle Background Glow */}
+      {/* Subtle Quantum Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-quantum-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -93,16 +104,16 @@ export const LoginPage: React.FC = () => {
 
         <Card variant="glass" className="border-surface-700/80 shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-base">Sign In</CardTitle>
-            <CardDescription>Enter your operator credentials to access the QIGA route cluster</CardDescription>
+            <CardTitle className="text-base">Operator Sign In</CardTitle>
+            <CardDescription>Enter credentials or use 1-click Quick Profile to access the QIGA cluster</CardDescription>
           </CardHeader>
 
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <Input
-                label="User ID or Email"
+                label="Operator Email / ID"
                 type="email"
-                placeholder="operator@mobility.org"
+                placeholder="alex.rivera@mobility.org"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 leftIcon={<Mail className="w-4 h-4" />}
@@ -124,12 +135,12 @@ export const LoginPage: React.FC = () => {
                   Forgot password?
                 </Link>
                 <Link to="/register" className="text-surface-400 hover:text-surface-200 transition-colors">
-                  Need an account?
+                  Create Account
                 </Link>
               </div>
             </CardContent>
 
-            <CardFooter className="flex flex-col gap-2.5">
+            <CardFooter className="flex flex-col gap-3">
               <Button
                 type="submit"
                 variant="primary"
@@ -141,15 +152,40 @@ export const LoginPage: React.FC = () => {
                 Authenticate & Enter
               </Button>
 
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handleDemoLogin}
-                className="w-full text-xs text-surface-300"
-              >
-                Quick Demo Operator Sign-In
-              </Button>
+              <div className="pt-2 border-t border-surface-800/80 w-full space-y-1.5">
+                <span className="text-[10px] text-surface-400 font-semibold tracking-wider uppercase block text-center">
+                  Instant Demo Roles
+                </span>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleQuickSignIn('FLEET_MANAGER')}
+                    className="text-[11px] px-1 py-1"
+                  >
+                    Fleet Mgr
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleQuickSignIn('RESEARCHER')}
+                    className="text-[11px] px-1 py-1"
+                  >
+                    Q-Scientist
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleQuickSignIn('DISPATCHER')}
+                    className="text-[11px] px-1 py-1"
+                  >
+                    Dispatcher
+                  </Button>
+                </div>
+              </div>
             </CardFooter>
           </form>
         </Card>

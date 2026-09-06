@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { env } from '@/config/env';
 import type { LocationPoint, RouteOption } from '@/types';
-import { MapPin, Navigation, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, MapPin, Navigation } from 'lucide-react';
 
 export interface MapViewProps {
   origin?: LocationPoint | null;
@@ -34,7 +34,7 @@ export const MapView: React.FC<MapViewProps> = ({
   const layerGroupRef = useRef<L.LayerGroup | null>(null);
   const [mapError, setMapError] = React.useState<boolean>(false);
 
-  // Initialize Map Instance
+  // Initialize Leaflet Map Instance once
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -50,13 +50,12 @@ export const MapView: React.FC<MapViewProps> = ({
         doubleClickZoom: interactive,
       });
 
-      // Add Carto Dark / Voyager tile layer
+      // Carto Dark Voyager tiles
       L.tileLayer(env.VITE_MAP_TILE_URL, {
         maxZoom: 19,
         subdomains: 'abcd',
       }).addTo(map);
 
-      // Add Zoom Controls at top-right
       if (interactive) {
         L.control.zoom({ position: 'topright' }).addTo(map);
       }
@@ -65,7 +64,7 @@ export const MapView: React.FC<MapViewProps> = ({
       layerGroupRef.current = layerGroup;
       mapInstanceRef.current = map;
 
-      // Handle map clicks
+      // Map click handler for interactive coordinate picking
       if (onMapClick) {
         map.on('click', (e: L.LeafletMouseEvent) => {
           onMapClick(e.latlng.lat, e.latlng.lng);
@@ -84,7 +83,7 @@ export const MapView: React.FC<MapViewProps> = ({
     };
   }, []);
 
-  // Update Layers & Route Polylines
+  // Update Waypoint Markers and Polylines
   useEffect(() => {
     const map = mapInstanceRef.current;
     const layerGroup = layerGroupRef.current;
@@ -93,53 +92,86 @@ export const MapView: React.FC<MapViewProps> = ({
     layerGroup.clearLayers();
     const bounds = L.latLngBounds([]);
 
-    // Custom Marker Icons
-    const createCustomIcon = (bgColor: string, text: string) => {
+    // Custom CSS Pin Icons
+    const createPin = (bgColor: string, text: string, ringColor: string) => {
       return L.divIcon({
-        className: 'custom-leaflet-marker',
-        html: `<div style="background-color: ${bgColor}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #020617; font-weight: 800; font-size: 11px; border: 2px solid #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">${text}</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        className: 'custom-pin-marker',
+        html: `
+          <div style="
+            background: ${bgColor};
+            color: #020617;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 12px;
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 0 15px ${ringColor}, 0 4px 10px rgba(0,0,0,0.6);
+            transform: translate(-16px, -16px);
+          ">
+            ${text}
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
     };
 
-    // 1. Origin Marker
+    // 1. Origin Pin (Teal)
     if (origin && origin.latitude && origin.longitude) {
       const originMarker = L.marker([origin.latitude, origin.longitude], {
-        icon: createCustomIcon('#2dd4bf', 'A'),
-      }).bindPopup(`<b>Origin:</b><br/>${origin.address}`);
+        icon: createPin('#14b8a6', 'A', 'rgba(20, 184, 166, 0.6)'),
+      }).bindPopup(`
+        <div style="font-family: Inter, sans-serif; font-size: 12px;">
+          <b style="color: #14b8a6;">Start Origin:</b><br/>
+          <span>${origin.address}</span>
+        </div>
+      `);
       layerGroup.addLayer(originMarker);
       bounds.extend([origin.latitude, origin.longitude]);
     }
 
-    // 2. Intermediate Stops
+    // 2. Intermediate Waypoint Stops (Indigo)
     stops.forEach((stop, index) => {
       if (stop.latitude && stop.longitude) {
         const stopMarker = L.marker([stop.latitude, stop.longitude], {
-          icon: createCustomIcon('#818cf8', `${index + 1}`),
-        }).bindPopup(`<b>Stop ${index + 1}:</b><br/>${stop.address}`);
+          icon: createPin('#818cf8', `${index + 1}`, 'rgba(129, 140, 248, 0.6)'),
+        }).bindPopup(`
+          <div style="font-family: Inter, sans-serif; font-size: 12px;">
+            <b style="color: #818cf8;">Stop ${index + 1}:</b><br/>
+            <span>${stop.address}</span>
+          </div>
+        `);
         layerGroup.addLayer(stopMarker);
         bounds.extend([stop.latitude, stop.longitude]);
       }
     });
 
-    // 3. Destination Marker
+    // 3. Destination Pin (Rose)
     if (destination && destination.latitude && destination.longitude) {
       const destMarker = L.marker([destination.latitude, destination.longitude], {
-        icon: createCustomIcon('#f43f5e', 'B'),
-      }).bindPopup(`<b>Destination:</b><br/>${destination.address}`);
+        icon: createPin('#f43f5e', 'B', 'rgba(244, 63, 94, 0.6)'),
+      }).bindPopup(`
+        <div style="font-family: Inter, sans-serif; font-size: 12px;">
+          <b style="color: #f43f5e;">Destination:</b><br/>
+          <span>${destination.address}</span>
+        </div>
+      `);
       layerGroup.addLayer(destMarker);
       bounds.extend([destination.latitude, destination.longitude]);
     }
 
-    // 4. Polylines for Routes
+    // 4. Polylines for Calculated Routes
     routes.forEach((route) => {
       if (!route.coordinates || route.coordinates.length < 2) return;
 
       const isSelected = selectedRouteId ? route.id === selectedRouteId : route.rank === 1;
       const isQiga = route.algorithm === 'QIGA';
 
-      let color = '#64748b'; // Inactive
+      let color = '#475569';
       let weight = 4;
       let opacity = 0.5;
 
@@ -158,11 +190,14 @@ export const MapView: React.FC<MapViewProps> = ({
       });
 
       polyline.bindPopup(`
-        <div style="font-size: 12px; font-family: Inter, sans-serif;">
-          <b style="color: ${isQiga ? '#2dd4bf' : '#818cf8'};">${route.name}</b><br/>
-          <span>Algorithm: <b>${route.algorithm}</b></span><br/>
-          <span>Duration: <b>${Math.round(route.durationSeconds / 60)} mins</b></span><br/>
-          <span>Distance: <b>${(route.distanceMeters / 1000).toFixed(1)} km</b></span>
+        <div style="font-family: Inter, sans-serif; font-size: 12px; color: #f8fafc;">
+          <b style="color: ${isQiga ? '#2dd4bf' : '#818cf8'}; font-size: 13px;">${route.name}</b><br/>
+          <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
+            <span>Algorithm: <b>${route.algorithm}</b></span>
+            <span>Duration: <b>${Math.round(route.durationSeconds / 60)} mins</b></span>
+            <span>Distance: <b>${(route.distanceMeters / 1000).toFixed(1)} km</b></span>
+            <span>Fitness Score: <b>${(route.fitnessScore * 100).toFixed(1)}%</b></span>
+          </div>
         </div>
       `);
 
@@ -173,7 +208,7 @@ export const MapView: React.FC<MapViewProps> = ({
       }
     });
 
-    // Fit map bounds smoothly if we have valid coordinates
+    // Fit map bounds smoothly
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true });
     }
@@ -181,11 +216,11 @@ export const MapView: React.FC<MapViewProps> = ({
 
   if (mapError) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-surface-900 border border-surface-800 rounded-2xl text-center min-h-[300px]">
+      <div className="flex flex-col items-center justify-center p-8 bg-surface-900 border border-surface-800 rounded-2xl text-center min-h-[350px]">
         <AlertTriangle className="w-8 h-8 text-amber-400 mb-2" />
-        <h4 className="text-sm font-semibold text-surface-100">Map Temporarily Unavailable</h4>
+        <h4 className="text-sm font-semibold text-surface-100">GIS Map Layer Offline</h4>
         <p className="text-xs text-surface-400 max-w-xs mt-1">
-          Route information and QIGA optimization telemetry remain fully operational.
+          Optimization results, route telemetry, and turn-by-turn guidance remain active.
         </p>
       </div>
     );

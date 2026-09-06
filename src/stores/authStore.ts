@@ -33,34 +33,49 @@ const safeStorage: StateStorage = {
   },
 };
 
+export interface RegisteredAccount {
+  user: UserProfile;
+  passwordHash: string;
+}
+
 interface AuthState {
   user: UserProfile | null;
   token: string | null;
   isAuthenticated: boolean;
   sessionExpired: boolean;
+  registeredAccounts: RegisteredAccount[];
   login: (user: UserProfile, token: string) => void;
+  registerAccount: (user: UserProfile, password: string) => void;
   logout: () => void;
   setSessionExpired: (expired: boolean) => void;
   updateUserPreferences: (preferences: Partial<UserProfile>) => void;
 }
 
+const defaultAdminUser: UserProfile = {
+  id: 'usr_prod_001',
+  name: 'Alex Rivera',
+  email: 'alex.rivera@mobility.org',
+  phone: '+1 (555) 234-5678',
+  role: 'FLEET_MANAGER',
+  defaultVehicle: 'FOUR_WHEELER',
+  preferredObjective: 'BALANCED',
+  units: 'METRIC',
+  language: 'en',
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      user: {
-        id: 'usr_prod_001',
-        name: 'Alex Rivera',
-        email: 'alex.rivera@mobility.org',
-        phone: '+1 (555) 234-5678',
-        role: 'USER',
-        defaultVehicle: 'FOUR_WHEELER',
-        preferredObjective: 'BALANCED',
-        units: 'METRIC',
-        language: 'en',
-      },
+    (set, get) => ({
+      user: defaultAdminUser,
       token: 'jwt_mock_prod_session_token_valid',
       isAuthenticated: true,
       sessionExpired: false,
+      registeredAccounts: [
+        {
+          user: defaultAdminUser,
+          passwordHash: 'password123',
+        },
+      ],
 
       login: (user, token) =>
         set({
@@ -69,6 +84,17 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           sessionExpired: false,
         }),
+
+      registerAccount: (newUser, password) => {
+        const existing = get().registeredAccounts;
+        set({
+          registeredAccounts: [...existing, { user: newUser, passwordHash: password }],
+          user: newUser,
+          token: `jwt_session_${Date.now()}`,
+          isAuthenticated: true,
+          sessionExpired: false,
+        });
+      },
 
       logout: () =>
         set({
